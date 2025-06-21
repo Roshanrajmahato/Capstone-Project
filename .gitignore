@@ -194,5 +194,4 @@ cython_debug/
 .cursorindexingignore
 cred.txt
 local_s3/
-data/
 models/
