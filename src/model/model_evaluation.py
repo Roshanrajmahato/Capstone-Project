@@ -10,7 +10,6 @@ import dagshub
 import os
 from src.logger import logging
 
-
 # Below code block is for production use
 # -------------------------------------------------------------------------------------
 # Set up DagsHub credentials for MLflow tracking
@@ -29,15 +28,7 @@ repo_name = "Capstone-Project"
 mlflow.set_tracking_uri(f'{dagshub_url}/{repo_owner}/{repo_name}.mlflow')
 # -------------------------------------------------------------------------------------
 
-# Below code block is for local use
-# -------------------------------------------------------------------------------------
-# mlflow.set_tracking_uri('https://dagshub.com/Roshanrajmahato/Capstone-Project.mlflow')
-# dagshub.init(repo_owner='Roshanrajmahato', repo_name='Capstone-Project', mlflow=True)
-# -------------------------------------------------------------------------------------
-
-
 def load_model(file_path: str):
-    """Load the trained model from a file."""
     try:
         with open(file_path, 'rb') as file:
             model = pickle.load(file)
@@ -51,7 +42,6 @@ def load_model(file_path: str):
         raise
 
 def load_data(file_path: str) -> pd.DataFrame:
-    """Load data from a CSV file."""
     try:
         df = pd.read_csv(file_path)
         logging.info('Data loaded from %s', file_path)
@@ -64,7 +54,6 @@ def load_data(file_path: str) -> pd.DataFrame:
         raise
 
 def evaluate_model(clf, X_test: np.ndarray, y_test: np.ndarray) -> dict:
-    """Evaluate the model and return the evaluation metrics."""
     try:
         y_pred = clf.predict(X_test)
         y_pred_proba = clf.predict_proba(X_test)[:, 1]
@@ -87,7 +76,6 @@ def evaluate_model(clf, X_test: np.ndarray, y_test: np.ndarray) -> dict:
         raise
 
 def save_metrics(metrics: dict, file_path: str) -> None:
-    """Save the evaluation metrics to a JSON file."""
     try:
         with open(file_path, 'w') as file:
             json.dump(metrics, file, indent=4)
@@ -97,7 +85,6 @@ def save_metrics(metrics: dict, file_path: str) -> None:
         raise
 
 def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
-    """Save the model run ID and path to a JSON file."""
     try:
         model_info = {'run_id': run_id, 'model_path': model_path}
         with open(file_path, 'w') as file:
@@ -109,7 +96,7 @@ def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
 
 def main():
     mlflow.set_experiment("my-dvc-pipeline")
-    with mlflow.start_run() as run:  # Start an MLflow run
+    with mlflow.start_run() as run:
         try:
             clf = load_model('./models/model.pkl')
             test_data = load_data('./data/processed/test_bow.csv')
@@ -121,23 +108,21 @@ def main():
             
             save_metrics(metrics, 'reports/metrics.json')
             
-            # Log metrics to MLflow
             for metric_name, metric_value in metrics.items():
                 mlflow.log_metric(metric_name, metric_value)
             
-            # Log model parameters to MLflow
             if hasattr(clf, 'get_params'):
                 params = clf.get_params()
                 for param_name, param_value in params.items():
                     mlflow.log_param(param_name, param_value)
-            
-            # Log model to MLflow
-            mlflow.sklearn.log_model(clf, name="model")
-            
-            # Save model info
+
+            # ✅ DagsHub-safe model logging
+            import joblib
+            os.makedirs("outputs", exist_ok=True)
+            joblib.dump(clf, "outputs/model.pkl")
+            mlflow.log_artifacts("outputs", artifact_path="model")
+
             save_model_info(run.info.run_id, "model", 'reports/experiment_info.json')
-            
-            # Log the metrics file to MLflow
             mlflow.log_artifact('reports/metrics.json')
 
         except Exception as e:
