@@ -19,7 +19,7 @@ def promote_model():
     # MLflow tracking URI for DagsHub
     dagshub_url: str = "https://dagshub.com"
     repo_owner: str = "Roshanrajmahato"
-    repo_name: str = "YT-Capstone-Project"
+    repo_name: str = "Capstone-Project"
     mlflow.set_tracking_uri(uri=f"{dagshub_url}/{repo_owner}/{repo_name}.mlflow")
 
     client: MlflowClient = MlflowClient()
